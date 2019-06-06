@@ -1,0 +1,1721 @@
+import java.applet.Applet;
+import java.applet.AudioClip;
+import java.awt.*;
+import java.awt.image.*;
+import java.awt.event.*;
+import javax.swing.*;
+import javax.swing.border.*;
+import javax.swing.event.*;
+import java.io.*;
+import java.util.*;
+import javax.imageio.*;
+import java.lang.*;
+import javax.swing.JPanel;
+import java.awt.Toolkit;
+import java.net.*;
+import java.util.Date.*;
+
+
+/*
+
+A Runnable Canvas class to animate the ringing bells and play the bell sound
+
+*/
+
+class BellCanvas extends Canvas implements KeyListener, MouseListener, Runnable {//160
+    //	Applet class so that messages can be passed between classes
+    Animator animator;
+
+    //	A BufferStrategy used to enable double-buffering (page-flipping) on this canvas, this creates a smoother animation of graphics without flickering
+    BufferStrategy strategy;
+
+    //	Graphics for this canvas
+    Graphics gg;
+
+    //sets up the graphics for the different numbers laid over the animations
+    String name;
+
+    //	ints for the imagenumber in the image array, the last image number (size of image array -1), width and height of this canvas
+    int imagenumber, lastimagenumber, width, height;
+
+    //	An array of images to be animated
+    Image[] images;	
+
+    //	boolean to tell the canvas to allow animation
+    boolean animate;
+
+    //	boolean to tell the canvas if the images are loaded
+    boolean imagesloaded;
+
+    //	An audio clip for the bell dong sound
+    AudioClip sound;
+
+    // 	A thread for this runnable canvas to run on
+    Thread thread;
+
+    // Create a char for the label of each canvas
+    char cc;
+
+    // setup the media tracker********************************
+
+
+    // create a way of changing the animation boolean to allow for animation. 
+    public void setAnimate(boolean b){
+	animate = b;
+    }
+
+    // create a way of returningthe state of the animations, i.e. animating or not?
+    public boolean getAnimate(){
+	return animate;
+    }
+
+    //	Construct a canvas with the particular Animator class, width (w), height (h) and sound (s) with lay over number for bell label (x) and (c).
+
+    public BellCanvas(Animator anim, int w, int h, String s, String x, char c) {
+	MediaTracker media = new MediaTracker(this);
+
+	setSize(w,h);
+	width=w; height=h;
+	setBackground(Color.white);
+	animator = anim;
+	sound = animator.getAudioClip(animator.getDocumentBase(), "Audio/"+s);
+	name = x;
+	cc = c;
+
+	// initialise imagenunber to 0
+	imagenumber=0;
+
+	// set animate and imagesloaded booleans to false
+	animate=false;
+	imagesloaded=false;
+
+	// add a mouselistener to this canvas
+	addMouseListener(this);
+
+	// initialise the image array to a size of 16 and the last image number to 15
+	images = new Image[16];
+	lastimagenumber=15;
+
+	addKeyListener(this);
+	setFocusable(false);
+	//create the media tracker************************************
+
+    }
+
+    // 	Load up and store the required images into the image array
+    public void setImages() {
+	for(int i=0; i<16; i++) {
+	    images[i] = animator.getImage(animator.getCodeBase(), "Images/T"+(i+1)+".GIF");
+	    //this is where the tracker stuff must go!*****************************
+	}
+	imagesloaded=true;
+
+	//about try and catch loop as to whether the image 15 is loaded!if tracker = image 15 true, then image loaded = true
+
+    }
+
+    //	Method to start the thread running
+    public void start() {
+	if(thread==null) {
+	    thread=new Thread(this);
+	    thread.start();
+	}
+    }
+
+    //	Method to stop the thread
+    public void stop() {
+	if(thread!=null) {
+	    thread=null;
+	}
+    }
+
+    public void mouseExited(MouseEvent e) {}
+    public void mouseEntered(MouseEvent e) {}
+    public void mouseReleased(MouseEvent e) {}
+    public void mouseClicked(MouseEvent e) {}
+
+    //	If the mouse button is pressed on this canvas set animate boolean to true to allow the animation
+    public void mousePressed(MouseEvent e) {
+	animate();
+    }
+    
+    // a way to call the animation from other classes, i.e. so that the canvases animate when clicking or with number presses. 
+    public void animate() {
+	setAnimate(true);
+    }
+    
+    //	The run method for this runnable canvas class    
+    public void run() {
+	while(true) {
+	    
+	    // set up the graphics for double buffering
+	    strategy = getBufferStrategy();
+	    gg = strategy.getDrawGraphics();	    
+	    paint(gg);
+
+	    // flip the graphics to the screen	    
+	    strategy.show();
+
+	    //dispose of the image once used as will no longer be shown
+	    gg.dispose();
+	    try {
+		// create a small delay
+		thread.sleep(40);
+	    } 
+	    catch(Exception e) {}
+	}
+    }
+    
+    
+    //play sound method that changes play animate true
+    
+    public void paint(Graphics g) {//151
+	
+	if(!imagesloaded) setImages();
+	
+	// if the animate boolean and imagesloaded boolean are set to true then start the animation
+	if(animate && imagesloaded) {//152
+	    
+	    // the imagenumber is equal to 5 then play the sound, sound.stop is called first incase the sound is already playing
+	    if(imagenumber==5){//155
+		
+		sound.stop(); sound.play(); 
+		
+	    }//155
+	    
+	    // draw the particular bell image, from the image array, to the graphics
+	    g.drawImage(images[imagenumber],0,0,this);
+	    g.setColor(Color.black);
+	    g.setFont(new Font("Arial", Font.BOLD, 20));
+	    g.drawString(name, 66, 335);
+	    // increment the imagenumber. if it equals the last image number then reset the imagenumber to 0 and the animation boolean to false
+	    
+	    
+	    imagenumber++;
+	    if(imagenumber>lastimagenumber) {//153 
+		imagenumber=0;
+		animate=false;
+	    }//153 
+	    
+	    // if the animate boolean is set to false then just draw the first image to the canvas
+	}//152
+	
+	else if(!animate && imagesloaded) {//154
+	    g.drawImage(images[0],0,0,this);
+	    g.setColor(Color.black);
+	    g.setFont(new Font("Arial", Font.BOLD, 20));
+	    g.drawString(name, 66, 335);				
+	}//154 
+    }//151	
+    
+    public void keyPressed(KeyEvent e) {//155
+	setFocusable(false);
+	if(e.getKeyChar() == cc)
+	    {//157
+		animate=true;
+	    }//157
+    }//155
+    
+    public void keyReleased(KeyEvent e) {}
+    
+    //	If the key is pressed on this canvas set animate boolean to true to allow the animation
+    
+    public void keyTyped(KeyEvent e)
+    {//156
+	setFocusable(false);
+	if(e.getKeyChar() == cc)
+	    {//157
+		animate=true;
+	    }//157
+    }//156
+    
+}//160
+
+/*	    
+	    
+The Canvas for the recording facility!
+
+*/
+
+class RecCanvas extends JPanel implements ActionListener{//1
+    private int width, height;
+    public Graphics gx;
+    Animator animator;
+    private static final int F_W = 1040;
+    private static final int F_H = 350;
+    private static final int F_X_O = 0;
+    private static final int F_Y_O = 150;
+    public int size; 
+    public int[] notes;    
+    private JRadioButton[] noteRadio;
+    private JRadioButton[] typeRadio;
+    private JRadioButton[] speedRadio;
+    public JButton aButton;
+    public JButton bButton;
+    public JButton cButton;
+    public JButton dButton;
+    public JButton eButton;
+    public JButton fButton;
+    public JButton gButton;
+    public JButton ccButton;
+    public JButton rButton;
+    public JButton scrollL, scrollFullL;
+    public JButton scrollR, scrollFullR;
+    public JTextField textField;
+    public JButton convert;
+    public JLabel image;
+    public Image[] noteImages;
+    Thread playThread;
+    JTextField arrayField;
+    public int[] notesForPlay;
+    public JTextField tCleffCanvas, notesCanvas1, notesCanvas2, notesCanvas3, notesCanvas4;
+    public JTextField notesCanvas5, notesCanvas6, notesCanvas7, notesCanvas8;    
+    public JTextField openCanvas, bNoteCanvas1, bNoteCanvas2, bNoteCanvas3, bNoteCanvas4;
+    public JTextField bNoteCanvas5, bNoteCanvas6, bNoteCanvas7, bNoteCanvas8; 
+    public int startDisplayNumber;
+    public String na,nb,nc,nd,ne,nf,ng,nh,ni,nj,nk,nl,nm,nn,no,np;
+    public JPanel contentPanel;
+    public JPanel displayPanel;
+    public JPanel convertedPanel;
+    public JPanel scrollPanel;
+    public JLabel testImage, bScrollLabel, testLabel1, testLabel2;
+    public String [] images;
+    public int g;
+
+
+    public RecCanvas(Animator animator, int w, int h) {//2
+	setSize(w,h);
+	width = w;
+	height = h;
+	setLayout(null);
+	setFocusable(false);
+
+	na = "null";
+	nb = "null";
+	nc = "null";
+	nd = "null";
+	ne = "null";
+	nf = "null";
+	ng = "null";
+	nh = "null";
+	ni = "null";
+	nj = "null";
+	nk = "null";
+	nl = "null";
+	nm = "null";
+	nn = "null";
+	no = "null";
+	np = "null";
+
+
+	Container radioContainer;
+	JPanel notePanel, buttonPanel, textPanel, typePanel, speedPanel, recPanel;
+	ButtonGroup noteGroup, typeGroup, speedGroup;
+
+	String[] btnText = {"Cr", "Qu"};
+	String[] btnText1 = {"Nor", "#"};
+	String[] btnText2 = {"4/4", "3/4"};
+
+	contentPanel = new JPanel();
+	contentPanel.setLayout(null);
+
+	displayPanel = new JPanel();
+	convertedPanel = new JPanel();
+	scrollPanel = new JPanel(null);
+
+	textPanel = new JPanel(null);
+	textPanel.setBackground(Color.orange);
+
+	notePanel = new JPanel(new FlowLayout());
+       	notePanel.setBorder(null);
+
+	speedPanel = new JPanel(new FlowLayout());
+	//       	speedPanel.setBorder(BorderFactory.createTitledBorder("Time Signature"));
+
+	typePanel = new JPanel(new FlowLayout());
+	//	typePanel.setBorder(BorderFactory.createTitledBorder("Normal/Sharpe?"));	
+
+	noteGroup = new ButtonGroup();
+	noteRadio = new JRadioButton[btnText.length];
+
+	typeGroup = new ButtonGroup();
+	typeRadio = new JRadioButton[btnText1.length];
+
+	speedGroup = new ButtonGroup();
+	speedRadio = new JRadioButton[btnText2.length];
+
+      	for(int i = 0; i < noteRadio.length; i++) {//4
+	    noteRadio[i] = new JRadioButton(btnText[i]);
+	    noteGroup.add(noteRadio[i]);
+	    notePanel.add(noteRadio[i]);
+	}//4
+	for(int i = 0; i < typeRadio.length; i++) {//5
+	    typeRadio[i] = new JRadioButton(btnText1[i]);
+	    typeGroup.add(typeRadio[i]);
+	    typePanel.add(typeRadio[i]);
+	}//5
+	for(int i = 0; i < speedRadio.length; i++) {//6
+	    speedRadio[i] = new JRadioButton(btnText2[i]);
+	    speedGroup.add(speedRadio[i]);
+	    speedPanel.add(speedRadio[i]);
+	}//6
+	
+   	noteRadio[1].setSelected(true);
+       	typeRadio[0].setSelected(true);
+	speedRadio[0].setSelected(true);
+
+	arrayField = new JTextField();
+	arrayField.setBounds(170,4,500,20);
+	textPanel.add(arrayField);
+	arrayField.setFocusable(false);
+
+	textField = new JTextField();
+	textField.setBounds(170, 26, 500, 20);
+	textPanel.add(textField);
+	textField.setFocusable(false);
+
+	buttonPanel = new JPanel(new GridLayout(5,1));
+
+	aButton = new JButton("A");
+	aButton.addActionListener(this);
+	buttonPanel.add(aButton);
+	aButton.setFocusable(false);
+
+	bButton = new JButton("B");
+	bButton.addActionListener(this);
+	buttonPanel.add(bButton);
+	bButton.setFocusable(false);
+
+	cButton = new JButton("C");
+	cButton.addActionListener(this);
+	buttonPanel.add(cButton);
+	cButton.setFocusable(false);
+
+	dButton = new JButton("D");
+	dButton.addActionListener(this);
+	buttonPanel.add(dButton);
+	dButton.setFocusable(false);
+
+	eButton = new JButton("E");
+	eButton.addActionListener(this);
+	buttonPanel.add(eButton);
+	eButton.setFocusable(false);
+
+	fButton = new JButton("F");
+	fButton.addActionListener(this);
+	buttonPanel.add(fButton);
+
+	fButton.setFocusable(false);
+
+	gButton = new JButton("G");
+	gButton.addActionListener(this);
+	buttonPanel.add(gButton);
+	gButton.setFocusable(false);
+
+	ccButton = new JButton("CC");
+	ccButton.addActionListener(this);
+	buttonPanel.add(ccButton);
+	ccButton.setFocusable(false);
+
+	convert = new JButton("Convert");
+	convert.addActionListener(this);
+	buttonPanel.add(convert);	
+	convert.setFocusable(false);
+
+	rButton = new JButton("Rest");
+	rButton.addActionListener(this);
+	buttonPanel.add(rButton);
+	rButton.setFocusable(false);
+
+	testLabel1 = new JLabel("notes converted");
+	testLabel1.setBounds(5,4,150,20);
+	textPanel.add(testLabel1);
+
+	testLabel2 = new JLabel("button's added text(Raw)");
+	testLabel2.setBounds(5,26,150,20);
+	textPanel.add(testLabel2);
+
+	scrollL = new JButton("<");
+	scrollL.addActionListener(this);
+	scrollL.setBounds(55,2,45,31);
+	scrollPanel.add(scrollL);
+	scrollL.setFocusable(false);
+
+	scrollR = new JButton(">");
+	scrollR.addActionListener(this);
+	scrollPanel.add(scrollR);
+	scrollR.setBounds(460,2,45,31);
+	scrollR.setFocusable(false);
+
+	scrollFullL = new JButton("|<");
+	scrollFullL.addActionListener(this);
+	scrollPanel.add(scrollFullL);
+	scrollFullL.setBounds(5,2,45,31);
+	scrollFullL.setFocusable(false);
+
+	scrollFullR = new JButton(">|");
+	scrollFullR.addActionListener(this);
+	scrollPanel.add(scrollFullR);
+	scrollFullR.setBounds(510,2,45,31);
+	scrollFullR.setFocusable(false);
+
+	displayPanel.setLayout(null);
+
+	convertedPanel.setLayout(null);
+
+	bScrollLabel = new JLabel("scroll left and right using these buttons ");
+	bScrollLabel.setBounds(170,10,300,20);
+	scrollPanel.add(bScrollLabel);
+
+	refreshNStave();
+	refreshBStave();
+	delArray();
+
+	//***********************************************
+	    //Image Stuff
+	    
+// 	     	    noteImages = new Image[32];
+// 	     	    for(int k=0; k<32; k++){
+// 	     		noteImages[k] = animator.getImage(animator.getCodeBase(), "Images/N"+(k+1)+".GIF");
+// 	    	    }
+	    //   	    JLabel testImage;
+	    //    	    imageHolder = new JLabel();
+	    // 	    testImage = new JLabel(new ImageIcon("Images//N1.gif"));
+	    
+	    // 	    testImage.setBounds(0,0,60, 95);
+	    // 	    displayPanel.add(testImage); 
+	    
+	    // 	    imageHolder.setVisible(true);
+	    
+	    //      bNoteCanvas8.paint(noteImages[0]);
+	    // 	    imageHolder.setBounds(0,0, 50, 10);
+	    //      displayPanel.setLayout(null);
+	    // 	    convertedPanel.add(imageHolder);
+	    // 	    JLabel label1;
+	    // 	    ImageIcon icon;
+	    // 	    icon = new ImageIcon("Images/N1.gif");		
+	    //	    ImageIcon icon = createImageIcon("Images/N1.gif");
+	    // 	    label1 = new JLabel(icon);
+	    //	    label1.setBounds(75,0,60,95);
+	    // 	    scrollPanel.add(label1);
+	    
+	    //***********************************************
+		    
+		convertedPanel.setBounds(335, 148, 560, 95);
+		displayPanel.setBounds(335,5,560, 95);
+		buttonPanel.setBounds(0, 0, 330, 200);
+		typePanel.setBounds(110, 200, 110, 100);
+		notePanel.setBounds(220, 200, 110, 100);
+		speedPanel.setBounds(0 , 200 , 110, 100);
+		textPanel.setBounds(0, 250, 700, 50);
+		scrollPanel.setBounds(335, 100, 560, 100);
+		contentPanel.setBounds(0,0,1040,300);
+	
+		contentPanel.add(scrollPanel);	    
+		contentPanel.add(buttonPanel);
+	       	contentPanel.add(textPanel);
+		contentPanel.add(notePanel);
+		contentPanel.add(typePanel);
+		contentPanel.add(speedPanel);
+		contentPanel.add(displayPanel);
+		contentPanel.add(convertedPanel);
+		    
+		contentPanel.validate();
+		contentPanel.repaint();
+		add(contentPanel);      	
+
+		contentPanel.setVisible(true);
+		setVisible(true);	
+	
+    }//2
+
+    public void refreshNStave(){
+	tCleffCanvas = new JTextField("Trb\n Clf");
+	tCleffCanvas.setBounds(0,0,60,95);
+	tCleffCanvas.setFocusable(false);
+	displayPanel.add(tCleffCanvas);
+
+	notesCanvas1 = new JTextField(na);
+	notesCanvas1.setBounds(80,0,60,95);
+	notesCanvas1.setFocusable(false);
+	displayPanel.add(notesCanvas1);
+
+	notesCanvas2 = new JTextField(nb);
+	notesCanvas2.setBounds(140,0,60,95);
+	notesCanvas2.setFocusable(false);
+	displayPanel.add(notesCanvas2);
+
+	notesCanvas3 = new JTextField(nc);
+	notesCanvas3.setBounds(200,0,60,95);
+	notesCanvas3.setFocusable(false);
+	displayPanel.add(notesCanvas3);	
+
+	notesCanvas4 = new JTextField(nd);
+	notesCanvas4.setBounds(260,0,60,95);
+	notesCanvas4.setFocusable(false);
+	displayPanel.add(notesCanvas4);	
+
+	notesCanvas5 = new JTextField(ne);
+	notesCanvas5.setBounds(320,0,60,95);
+	notesCanvas5.setFocusable(false);
+	displayPanel.add(notesCanvas5);	
+	
+	notesCanvas6 = new JTextField(nf);
+	notesCanvas6.setBounds(380,0,60,95);
+	notesCanvas6.setFocusable(false);
+	displayPanel.add(notesCanvas6);	
+
+	notesCanvas7 = new JTextField(ng);
+	notesCanvas7.setBounds(440,0,60,95);
+	notesCanvas7.setFocusable(false);
+	displayPanel.add(notesCanvas7);	
+
+	notesCanvas8 = new JTextField(nh);
+	notesCanvas8.setBounds(500,0,60,95);
+	notesCanvas8.setFocusable(false);
+	displayPanel.add(notesCanvas8);
+
+    }
+
+    public void refreshBStave(){
+
+	bNoteCanvas1 = new JTextField(ni);
+	bNoteCanvas1.setBounds(80,0,60,95);
+	bNoteCanvas1.setFocusable(false);
+	convertedPanel.add(bNoteCanvas1);
+
+	bNoteCanvas2 = new JTextField(nj);
+	bNoteCanvas2.setBounds(140,0,60,95);
+	bNoteCanvas2.setFocusable(false);
+	convertedPanel.add(bNoteCanvas2);
+
+	bNoteCanvas3 = new JTextField(nk);
+	bNoteCanvas3.setBounds(200,0,60,95);
+	bNoteCanvas3.setFocusable(false);
+	convertedPanel.add(bNoteCanvas3);
+
+	bNoteCanvas4 = new JTextField(nl);
+	bNoteCanvas4.setBounds(260,0,60,95);
+	bNoteCanvas4.setFocusable(false);
+	convertedPanel.add(bNoteCanvas4);
+
+	bNoteCanvas5 = new JTextField(nm);
+	bNoteCanvas5.setBounds(320,0,60,95);
+	bNoteCanvas5.setFocusable(false);
+	convertedPanel.add(bNoteCanvas5);
+
+	bNoteCanvas6 = new JTextField(nn);
+	bNoteCanvas6.setBounds(380,0,60,95);
+	bNoteCanvas6.setFocusable(false);
+	convertedPanel.add(bNoteCanvas6);
+
+	bNoteCanvas7 = new JTextField(no);
+	bNoteCanvas7.setBounds(440,0,60,95);
+	bNoteCanvas7.setFocusable(false);
+	convertedPanel.add(bNoteCanvas7);
+
+	bNoteCanvas8 = new JTextField(np);
+	bNoteCanvas8.setBounds(500,0,60,95);
+	bNoteCanvas8.setFocusable(false);
+	convertedPanel.add(bNoteCanvas8);
+
+    }
+
+    public void paintStave(){//330
+	refreshBStave();
+    }//330
+
+    public int[] getNoteArray(){//200
+	return notesForPlay;
+    }//200
+
+    public String printArray(int [] a){//106
+	int j = 0;	
+	StringBuffer sb = new StringBuffer();
+	for(int i = 0; i < a.length; i++){//107
+	    j++;
+	    sb.append(""+a[i]+" , "+"");
+	    arrayField.setText(sb + ""); 
+	    arrayField.setFocusable(false);  
+	}//107
+
+	String s = sb.toString();
+	notesForPlay = a;
+ 	return s;
+
+    }//106
+
+    public void delArray(){
+	int[] delete;
+	delete  = new int[0];
+	arrayField.setText("");
+	textField.setText("");
+	notesForPlay = delete;
+    }
+
+    public void printBelowEight(int l){//304
+	if(l>0){bNoteCanvas1.setText(images[0]);}else{bNoteCanvas1.setText("null");}
+	if(l>1){bNoteCanvas2.setText(images[1]);}else{bNoteCanvas2.setText("null");}
+	if(l>2){bNoteCanvas3.setText(images[2]);}else{bNoteCanvas3.setText("null");}
+	if(l>3){bNoteCanvas4.setText(images[3]);}else{bNoteCanvas4.setText("null");}
+	if(l>4){bNoteCanvas5.setText(images[4]);}else{bNoteCanvas5.setText("null");}
+	if(l>5){bNoteCanvas6.setText(images[5]);}else{bNoteCanvas6.setText("null");}
+	if(l>6){bNoteCanvas7.setText(images[6]);}else{bNoteCanvas7.setText("null");}
+	bNoteCanvas8.setText("null");
+    }//304
+    
+    public void scrollRefresh(int l){
+	notesCanvas1.setText(images[l-8]);
+	notesCanvas2.setText(images[l-7]);
+	notesCanvas3.setText(images[l-6]);
+	notesCanvas4.setText(images[l-5]);
+	notesCanvas5.setText(images[l-4]);
+	notesCanvas6.setText(images[l-3]);
+	notesCanvas7.setText(images[l-2]);
+	notesCanvas8.setText(images[l-1]);
+
+	bNoteCanvas1.setText(images[l-8]);
+	bNoteCanvas2.setText(images[l-7]);
+	bNoteCanvas3.setText(images[l-6]);
+	bNoteCanvas4.setText(images[l-5]);
+	bNoteCanvas5.setText(images[l-4]);
+	bNoteCanvas6.setText(images[l-3]);
+	bNoteCanvas7.setText(images[l-2]);
+	bNoteCanvas8.setText(images[l-1]);
+    }
+
+    public void setNoteStave(int g){
+	if(g<=8){
+	notesCanvas1.setText(images[0]);
+	notesCanvas2.setText(images[1]);
+	notesCanvas3.setText(images[2]);
+	notesCanvas4.setText(images[3]);
+	notesCanvas5.setText(images[4]);
+	notesCanvas6.setText(images[5]);
+	notesCanvas7.setText(images[6]);
+	notesCanvas8.setText(images[7]);
+	}
+	else 
+	    {
+		notesCanvas1.setText(images[g-8]);
+		notesCanvas2.setText(images[g-7]);
+		notesCanvas3.setText(images[g-6]);
+		notesCanvas4.setText(images[g-5]);
+		notesCanvas5.setText(images[g-4]);
+		notesCanvas6.setText(images[g-3]);
+		notesCanvas7.setText(images[g-2]);
+		notesCanvas8.setText(images[g-1]);
+	    }
+    }
+    public void actionPerformed(ActionEvent event){//7
+	if(event.getSource() == scrollFullL){
+	    g = 8;
+	    notesCanvas1.setText(images[0]);
+	    notesCanvas2.setText(images[1]);
+	    notesCanvas3.setText(images[2]);
+	    notesCanvas4.setText(images[3]);
+	    notesCanvas5.setText(images[4]);
+	    notesCanvas6.setText(images[5]);
+	    notesCanvas7.setText(images[6]);
+	    notesCanvas8.setText(images[7]);
+
+	    bNoteCanvas1.setText(images[0]);
+	    bNoteCanvas2.setText(images[1]);
+	    bNoteCanvas3.setText(images[2]);
+	    bNoteCanvas4.setText(images[3]);
+	    bNoteCanvas5.setText(images[4]);
+	    bNoteCanvas6.setText(images[5]);
+	    bNoteCanvas7.setText(images[6]);
+	    bNoteCanvas8.setText(images[7]);
+
+	}
+
+	if(event.getSource() == scrollFullR){
+	    g = images.length;
+	    notesCanvas1.setText(images[g-8]);
+	    notesCanvas2.setText(images[g-7]);
+	    notesCanvas3.setText(images[g-6]);
+	    notesCanvas4.setText(images[g-5]);
+	    notesCanvas5.setText(images[g-4]);
+	    notesCanvas6.setText(images[g-3]);
+	    notesCanvas7.setText(images[g-2]);
+	    notesCanvas8.setText(images[g-1]);
+
+	    bNoteCanvas1.setText(images[g-8]);
+	    bNoteCanvas2.setText(images[g-7]);
+	    bNoteCanvas3.setText(images[g-6]);
+	    bNoteCanvas4.setText(images[g-5]);
+	    bNoteCanvas5.setText(images[g-4]);
+	    bNoteCanvas6.setText(images[g-3]);
+	    bNoteCanvas7.setText(images[g-2]);
+	    bNoteCanvas8.setText(images[g-1]);
+	}
+
+	if(event.getSource() == scrollL){//308
+	    if(images.length>8){//309
+		if((images.length-7)>=0){//309a
+		g = g-1;
+		scrollRefresh(g);
+		}//309a
+		else
+		    {
+			g = 7;
+		    }
+	    }//309
+	    else{//310
+	    }//310
+	}//308
+
+	if(event.getSource() == scrollR){//311
+	    if(images.length>8){//312
+		if(images.length>g){//312a
+		g = g+1;
+		scrollRefresh(g);
+		}//312a
+		else 
+		    {//312b
+			g = images.length;
+		    }//312b
+	    }//312
+	    else{//313
+	    }//313
+	}//311
+
+	if(event.getSource() == convert){//101
+	    String text = textField.getText();
+	    int num = 0;
+       	    int [] notes = new int[text.length()/2];	       
+	    int x = 0;
+	    images = new String [text.length()/2];
+
+	    for(int s = 0 ; s < text.length()  ; s+=2){//102
+		    
+		if(s == text.length()){//103
+		    break;
+		}//103		
+		
+		if(text.length()%2 == 0){//104
+		    
+		    String st = new String();
+		    st = text.substring(s,(s+2));
+		    images[x] = st;
+		    Integer stringint = new Integer(0);
+		    num = stringint.parseInt(st);
+		    System.out.println("st : "+ st +"\n");		       
+		    notes[x] = num;	      
+		    System.out.println("Notes : " + notes[x] + "\n");
+		    x++;
+		    
+		}//104
+		
+	    }//102
+	    
+	    System.out.println("Array.length = "+ notes.length);
+	    StringBuffer sb = new StringBuffer();
+	    System.out.println(printArray(notes));
+
+
+	    int l = images.length;
+	    if(images.length < 8){//300
+		printBelowEight(l);
+	    }//300
+	    else {//301
+		if(images.length >= 8){//302
+		    notesCanvas1.setText(images[l-8]);
+		    notesCanvas2.setText(images[l-7]);
+		    notesCanvas3.setText(images[l-6]);
+		    notesCanvas4.setText(images[l-5]);
+		    notesCanvas5.setText(images[l-4]);
+		    notesCanvas6.setText(images[l-3]);
+		    notesCanvas7.setText(images[l-2]);
+		    notesCanvas8.setText(images[l-1]);
+		    
+ 		    bNoteCanvas1.setText(images[l-8]);
+ 		    bNoteCanvas2.setText(images[l-7]);
+ 		    bNoteCanvas3.setText(images[l-6]);
+		    bNoteCanvas4.setText(images[l-5]);
+		    bNoteCanvas5.setText(images[l-4]);
+		    bNoteCanvas6.setText(images[l-3]);
+ 		    bNoteCanvas7.setText(images[l-2]);
+ 		    bNoteCanvas8.setText(images[l-1]);
+		}//302
+	    }//301
+	}//101
+	
+	if(event.getSource() == rButton){//105
+	    String r = textField.getText() + "00";
+	    textField.setText(r);
+	}//105
+
+	if(typeRadio[0].isSelected()){ //8
+
+	    if(noteRadio[1].isSelected()){ //9 
+
+		if(event.getSource() == aButton){//10
+		    String a = textField.getText() + "01";
+		    textField.setText(a);
+		    g = images.length;
+		}//10
+
+		if(event.getSource() == bButton){//11
+		    String b = textField.getText() + "02";
+		    textField.setText(b);
+		    g = images.length;
+		}//11
+
+		if(event.getSource() == cButton){//12
+		    String c = textField.getText() + "03";
+		    textField.setText(c);
+		    g = images.length;
+		}//12
+
+		if(event.getSource() == dButton){//13
+		    String d = textField.getText() + "04";
+		    textField.setText(d);
+		    g = images.length;
+		}//13
+
+		if(event.getSource() == eButton){//14
+		    String e = textField.getText() + "05";
+		    textField.setText(e);
+		    g = images.length;
+		}//14
+
+		if(event.getSource() == fButton){//15
+		    String f = textField.getText() + "06";
+		    textField.setText(f);
+		    g = images.length;
+		}//15
+
+		if(event.getSource() == gButton){//16
+		    String ng = textField.getText() + "07";
+		    textField.setText(ng);
+		    g = images.length;
+		}//16
+
+		if(event.getSource() == ccButton){//17
+		    String cc = textField.getText() + "08";
+		    textField.setText(cc);
+		    g = images.length;
+		}//17
+
+	    }//9
+
+	    else 
+
+		{//18
+
+		    if(event.getSource() == aButton){//19
+			String a = textField.getText() + "09";
+			textField.setText(a);
+			g = images.length;
+		    }//19
+		    if(event.getSource() == bButton){//20
+			String b = textField.getText() + "10";
+			textField.setText(b);
+			g = images.length;
+		    }//20
+		    if(event.getSource() == cButton){//21
+			String c = textField.getText() + "11";
+			textField.setText(c);
+			g = images.length;
+		    }//21
+		    if(event.getSource() == dButton){//22
+			String d = textField.getText() + "12";
+			textField.setText(d);
+			g = images.length;
+		    }//22
+		    if(event.getSource() == eButton){//23
+			String e = textField.getText() + "13";
+			textField.setText(e);
+			g = images.length;
+		    }//23
+		    if(event.getSource() == fButton){//24
+			String f = textField.getText() + "14";
+			textField.setText(f);
+			g = images.length;
+		    }//24
+		    if(event.getSource() == gButton){//25
+			String ng = textField.getText() + "15";
+			textField.setText(ng);
+			g = images.length;
+		    }//25
+		    if(event.getSource() == ccButton){//26
+			String cc = textField.getText() + "16";
+			textField.setText(cc);
+			g = images.length;
+		    }//26
+		}//18
+	}//8
+
+	else
+
+	    {//27
+		if(typeRadio[1].isSelected()){//28
+
+		    if(noteRadio[1].isSelected()){   //9 b
+
+			if(event.getSource() == aButton){//10b
+			    String a = textField.getText() + "17";
+			    textField.setText(a);
+			    g = images.length;
+			}//10b
+			
+			if(event.getSource() == bButton){//11b
+			    String b = textField.getText() + "18";
+			    textField.setText(b);
+			    g = images.length;
+			}//11b
+			
+			if(event.getSource() == cButton){//12b
+			    String c = textField.getText() + "19";
+			    textField.setText(c);
+			    g = images.length;
+			}//12b
+			
+			if(event.getSource() == dButton){//13b
+			    String d = textField.getText() + "20";
+			    textField.setText(d);
+			    g = images.length;
+			}//13b
+			
+			if(event.getSource() == eButton){//14b
+			    String e = textField.getText() + "21";
+			    textField.setText(e);
+			    g = images.length;
+			}//14b
+			
+			if(event.getSource() == fButton){//15b
+			    String f = textField.getText() + "22";
+			    textField.setText(f);
+			    g = images.length;
+			}//15b
+			
+			if(event.getSource() == gButton){//16b
+			    String ng = textField.getText() + "23";
+			    textField.setText(ng);
+			    g = images.length;
+			}//16b
+			
+			if(event.getSource() == ccButton){//17b
+			    String cc = textField.getText() + "24";
+			    textField.setText(cc);
+			    g = images.length;
+			}//17b
+			
+		    }//9b
+		
+		    else 
+			
+			{//18b
+			    
+			    if(event.getSource() == aButton){//19b
+				String a = textField.getText() + "25";
+				textField.setText(a);
+				g = images.length;
+			    }//19b
+			    
+			    if(event.getSource() == bButton){//20b
+				String b = textField.getText() + "26";
+				textField.setText(b);
+				g = images.length;
+			    }//20b
+			    
+			    if(event.getSource() == cButton){//21b
+				String c = textField.getText() + "27";
+				textField.setText(c);
+				g = images.length;
+			    }//21b
+			    
+			    if(event.getSource() == dButton){//22b
+				String d = textField.getText() + "28";
+				textField.setText(d);
+				g = images.length;
+			    }//22b
+			    
+			    if(event.getSource() == eButton){//23b
+				String e = textField.getText() + "29";
+				textField.setText(e);
+				g = images.length;
+			    }//23b
+			    
+			    if(event.getSource() == fButton){//24b
+				String f = textField.getText() + "30";
+				textField.setText(f);
+				g = images.length;
+			    }//24b
+			    
+			    if(event.getSource() == gButton){//25b
+				String ng = textField.getText() + "31";
+				textField.setText(ng);
+				g = images.length;
+			    }//25b
+			    
+			    if(event.getSource() == ccButton){//26b
+				String cc = textField.getText() + "32";
+				textField.setText(cc);
+				g = images.length;
+			    }//26b
+			    
+			}//18b       
+
+
+		}//28		
+
+	    }//27
+
+    }//7 
+
+}//1
+
+
+/*
+  
+The Main Applet class. This will be the container for all the canvases
+
+*/
+
+
+
+public class Animator extends JApplet implements KeyListener, ActionListener{
+
+    //setup 8 bellcanvas objects
+    BellCanvas bellCanvas1,bellCanvas2,bellCanvas3,bellCanvas4,bellCanvas5,bellCanvas6,bellCanvas7,bellCanvas8;
+
+    //setup a recording canvas
+    RecCanvas recCanvas;
+
+    //Container object for the contentpane
+    Container contentPane;
+
+    //Buttons for the recording facility
+    public JButton recButton, playRecButton, playButton, stopButton, clearButton;
+
+    //set a boolean to represent if the system is recording
+    boolean recording;
+
+    public int[] recArray;
+
+    public int[] transArray;
+
+    public JTextField setGapField, recArrayDisplay, recArrayField, yValue, timingP, timingPPlusOne;
+
+    public JLabel yValueLabel, timingLabel, timingPlusOneLabel, recordingLabel, convRecLabel, gapLabel;
+
+    public long j, k;
+
+    public int y = 0;
+
+    public long[] timing;
+
+    public long[] timer;
+
+    public int[] timer1;
+
+    public int[] pause;
+
+    JPanel buttonPane;
+
+    // 	Main Init method
+    public void init() {//207
+	setSize(1040,1000);
+	setFocusable(true);
+
+	// intialise the contentpane for this applet
+	contentPane = getContentPane();
+
+	// set the contentpane's layout to null
+	contentPane.setLayout(null);
+
+	setRecording(false);	
+
+	// create all the bellCanvases, set up their bounds on the applet and add them to the applets contentpane
+	bellCanvas8 = new BellCanvas(this,130,500,"bell2C.au","8",'8');
+	bellCanvas8.setBounds(0,0,130,500);
+	contentPane.add(bellCanvas8);
+
+	bellCanvas7 = new BellCanvas(this,130,500,"bell2D.au","7",'7');
+	bellCanvas7.setBounds(130,0,130,500);
+	contentPane.add(bellCanvas7);
+
+	bellCanvas6 = new BellCanvas(this,130,500,"bell2E.au","6",'6');
+	bellCanvas6.setBounds(260,0,130,500);
+	contentPane.add(bellCanvas6);
+
+	bellCanvas5 = new BellCanvas(this,130,500,"bell2F.au","5",'5');
+	bellCanvas5.setBounds(390,0,130,500);
+	contentPane.add(bellCanvas5);
+
+	bellCanvas4 = new BellCanvas(this,130,500,"bell2G.au","4",'4');
+	bellCanvas4.setBounds(520,0,130,500);
+	contentPane.add(bellCanvas4);
+
+	bellCanvas3 = new BellCanvas(this,130,500,"bell2A.au","3",'3');
+	bellCanvas3.setBounds(650,0,130,500);
+	contentPane.add(bellCanvas3);
+
+	bellCanvas2 = new BellCanvas(this,130,500,"bell2B.au","2",'2');
+	bellCanvas2.setBounds(780,0,130,500);
+	contentPane.add(bellCanvas2);
+
+	bellCanvas1 = new BellCanvas(this,130,500,"bell2CC.au","1",'1');
+	bellCanvas1.setBounds(910,0,130,500);
+	contentPane.add(bellCanvas1);
+
+	recCanvas = new RecCanvas(this, 1040, 300);
+	recCanvas.setBounds(0,500,900,300);
+	contentPane.add(recCanvas);
+	recCanvas.setFocusable(false);
+
+	// set the appplet to be visible and non focusable
+	setVisible(true);
+	setFocusable(true);
+	contentPane.setFocusable(false);
+
+	// set the bufferstrategies for each bellCanvas to have 2 buffers
+	bellCanvas1.createBufferStrategy(2);
+	bellCanvas2.createBufferStrategy(2);
+	bellCanvas3.createBufferStrategy(2);
+	bellCanvas4.createBufferStrategy(2);
+	bellCanvas5.createBufferStrategy(2);
+	bellCanvas6.createBufferStrategy(2);
+	bellCanvas7.createBufferStrategy(2);
+	bellCanvas8.createBufferStrategy(2);
+
+	// start the canvas threads
+
+	bellCanvas1.start();
+	bellCanvas2.start();
+	bellCanvas3.start();
+	bellCanvas4.start();
+	bellCanvas5.start();
+	bellCanvas6.start();
+	bellCanvas7.start();
+	bellCanvas8.start();
+
+	//add a key listener to the main applet class	
+
+	addKeyListener(this);
+
+	buttonPane = new JPanel();
+	buttonPane.setBounds(900, 500, 140, 300);
+	buttonPane.setLayout(null);
+	buttonPane.setFocusable(false);
+
+	playButton = new JButton("PLAY");
+	playButton.addActionListener(this);
+	playButton.setBounds(0,0,140,48);
+	buttonPane.add(playButton);
+	playButton.setFocusable(false);
+
+	recButton = new JButton("RECORD");
+	recButton.addActionListener(this);
+	recButton.setBounds(0, 48, 140,48);
+	buttonPane.add(recButton);
+	recButton.setFocusable(false);
+
+	stopButton = new JButton("STOP");
+	stopButton.setBounds(0, 144, 140, 48);
+	buttonPane.add(stopButton);
+	stopButton.addActionListener(this);
+	stopButton.setFocusable(false);
+
+	playRecButton = new JButton("PLAY RECORDED");
+	playRecButton.addActionListener(this);
+	playRecButton.setBounds(0,96, 140, 48);
+	buttonPane.add(playRecButton);
+	playRecButton.setFocusable(false);
+
+	clearButton = new JButton("CLEAR RECORDED");
+	clearButton.addActionListener(this);
+	clearButton.setBounds(0,192,140,48);
+	clearButton.setFocusable(false);
+	buttonPane.add(clearButton);
+
+	buttonPane.setFocusable(false);
+	contentPane.add(buttonPane);
+
+	yValueLabel = new JLabel("The value of Y");
+	yValueLabel.setBounds(5,805,80,20);
+	contentPane.add(yValueLabel);
+
+	timingLabel = new JLabel("the first time");
+	timingLabel.setBounds(5,830,80,20);
+	contentPane.add(timingLabel);
+
+	timingPlusOneLabel = new JLabel("the first+1 time");
+	timingPlusOneLabel.setBounds(5,855,80,20);
+	contentPane.add(timingPlusOneLabel);
+
+	recordingLabel = new JLabel("the recording entries");
+	recordingLabel.setBounds(250,855,250,20);
+	contentPane.add(recordingLabel);
+
+	convRecLabel = new JLabel("converted recording");
+	convRecLabel.setBounds(250,805,250,20);
+	contentPane.add(convRecLabel);
+
+	gapLabel = new JLabel("list of gaps between presses");
+	gapLabel.setBounds(250,830,250,20);
+	contentPane.add(gapLabel);
+
+	recArrayDisplay = new JTextField();
+	recArrayDisplay.addActionListener(this);
+	recArrayDisplay.setColumns(100);
+       	recArrayDisplay.setBounds(450,805,400,20);
+	contentPane.add(recArrayDisplay);
+	recArrayDisplay.setFocusable(false);
+
+	recArrayField = new JTextField();
+	recArrayField.addActionListener(this);
+	recArrayField.setColumns(100);
+	recArrayField.setBounds(450,855,400,20);
+	contentPane.add(recArrayField);
+	recArrayField.setFocusable(false);
+
+	yValue = new JTextField();
+	yValue.setBounds(100 , 805, 60 ,20 );
+	contentPane.add(yValue);
+	yValue.setFocusable(false);
+
+	timingP= new JTextField();
+	timingP.setBounds(100,830,60,20);
+	contentPane.add(timingP);
+	timingP.setFocusable(false);
+
+	timingPPlusOne= new JTextField();
+	timingPPlusOne.setBounds(100,855,60,20);
+	contentPane.add(timingPPlusOne);
+	timingPPlusOne.setFocusable(false);
+
+	setGapField = new JTextField();
+	setGapField.addActionListener(this);
+	setGapField.setColumns(100);
+	setGapField.setBounds(450, 830, 400, 20);
+	contentPane.add(setGapField);
+	setGapField.setFocusable(false);
+
+	timing = new long[100];
+
+    }//208
+
+    public long getTime(){
+	long x;
+       	x = System.currentTimeMillis();
+	y = y + 1;
+	return x;
+    }
+
+    public void keyPressed(KeyEvent e) {//192
+	if(recording == true){
+	    if(e.getKeyCode() == KeyEvent.VK_8){
+		String d = recArrayDisplay.getText() +"08";
+		recArrayDisplay.setText(d);
+		long dd = System.currentTimeMillis();
+		timing[y] = dd;
+		y = (y+1);
+		yValue.setText(""+y);
+
+ 	    }
+	    if(e.getKeyCode() == KeyEvent.VK_7){
+		String d = recArrayDisplay.getText() +"07";
+		recArrayDisplay.setText(d);
+		long dd = System.currentTimeMillis();
+		timing[y] = dd;
+		y = y+1;
+		yValue.setText(""+y);
+	    }
+	    if(e.getKeyCode() == KeyEvent.VK_6){
+		String d = recArrayDisplay.getText() +"06";
+		recArrayDisplay.setText(d);
+		long dd = System.currentTimeMillis();
+		timing[y] = dd;
+		y = y+1;
+		yValue.setText(""+y);
+	    }
+	    if(e.getKeyCode() == KeyEvent.VK_5){
+		String d = recArrayDisplay.getText() +"05";
+		recArrayDisplay.setText(d);
+		long dd = System.currentTimeMillis();
+		timing[y] = dd;
+		y = y+1;
+		yValue.setText(""+y);
+	    }
+	    if(e.getKeyCode() == KeyEvent.VK_4){
+		String d = recArrayDisplay.getText() +"04";
+		recArrayDisplay.setText(d);
+		long dd = System.currentTimeMillis();
+		timing[y] = dd;
+		y = y+1;
+		yValue.setText(""+y);
+	    }
+	    if(e.getKeyCode() == KeyEvent.VK_3){
+		String d = recArrayDisplay.getText() +"03";
+		recArrayDisplay.setText(d);
+		long dd = System.currentTimeMillis();
+		timing[y] = dd;
+		y = y+1;
+		yValue.setText(""+y);
+	    }
+	    if(e.getKeyCode() == KeyEvent.VK_2){
+		String d = recArrayDisplay.getText() +"02";
+		recArrayDisplay.setText(d);
+		long dd = System.currentTimeMillis();
+		timing[y] = dd;
+		y = y+1;
+		yValue.setText(""+y);
+	    }
+	    if(e.getKeyCode() == KeyEvent.VK_1){
+		String d = recArrayDisplay.getText() +"01";
+		recArrayDisplay.setText(d);
+		long dd = System.currentTimeMillis();
+		timing[y] = dd;
+		y = y+1;
+		yValue.setText(""+y);
+	    }
+	}
+    }//192
+    
+    public void keyReleased(KeyEvent e) {//191
+    }//191
+
+    //	If the key is pressed on this canvas set animate boolean to true to allow the animation
+    public void keyTyped(KeyEvent e){//190
+
+	bellCanvas8.keyPressed(e);
+	bellCanvas7.keyPressed(e);
+	bellCanvas6.keyPressed(e);
+	bellCanvas5.keyPressed(e);
+	bellCanvas4.keyPressed(e);
+	bellCanvas3.keyPressed(e);
+	bellCanvas2.keyPressed(e);
+	bellCanvas1.keyPressed(e);
+	       
+	contentPane.setFocusable(false);
+    }//190
+
+    public void setRecording(boolean b){//203
+	recording = b;
+    }//203
+
+    public boolean getRecording(){//204
+	return recording;
+    }//204
+
+    public String printArray(int [] a){//106
+	int j = 0;	
+	StringBuffer sb = new StringBuffer();
+	for(int i = 0; i < a.length; i++){
+	    j++;
+	    sb.append(""+a[i]+" , "+"");
+	    recArrayField.setText(sb + ""); 
+	    recArrayField.setFocusable(false);  
+	}
+	String s = sb.toString();
+	transArray = a;
+ 	return s;
+
+    }//106
+
+    public String printGapsReturns(long[] a){//106b
+
+	int j = 0;
+	StringBuffer sb = new StringBuffer();
+	for(int i = 0;i<a.length;i++){//107b
+	    j++;
+	    sb.append(""+a[i]+" , "+"");
+	    setGapField.setText(sb + "");
+	    setGapField.setFocusable(false);
+	}//107b
+	String s = sb.toString();
+	timing = a;
+	return s;
+
+    }//106b
+
+    public String printGaps(int[] a){//106b
+
+	int j = 0;
+	StringBuffer sb = new StringBuffer();
+	for(int i = 0;i<a.length;i++){//107b
+	    j++;
+	    sb.append(""+a[i]+" , "+"");
+	    setGapField.setText(sb + "");
+	    setGapField.setFocusable(false);
+	}//107b
+	String s = sb.toString();
+	return s;
+
+    }//106b
+
+    public void getGaps(){//360
+	timer = new long[y-1];
+	pause = new int[y];
+	int x = 0;
+	while(x<y-1){//360a
+	    timer[x] = timing[x + 1] - timing[x];
+	    long l = timer[x];
+	    int a = (int) l;
+	    pause[x] = a;
+	    timingP.setText(""+timing[x]);
+	    timingPPlusOne.setText(""+timing[x+1]);
+	    x = x + 1;
+	    yValue.setText(""+x);
+	}//360a
+
+    }//360
+
+
+    public void  actionPerformed(ActionEvent event){//169
+	if(recording==false){//218
+	    if(event.getSource() == playRecButton){//210
+		int[] y;	
+		y = transArray;
+		for(int j = 0;j<y.length;j++){//212
+		    if(y.length>0){//216
+			switch(y[j]){//211
+			case 1://try{Thread.sleep(400);}catch(Exception e){j = y.length;}
+			    bellCanvas1.animate();
+			    break;
+			
+			case 2://try{Thread.sleep(400);}catch(Exception e){j = y.length;}
+			    bellCanvas2.animate();
+			    break;
+			
+			case 3://try{Thread.sleep(400);}catch(Exception e){j = y.length;}
+			    bellCanvas3.animate();
+			    break;
+			
+			case 4://try{Thread.sleep(400);}catch(Exception e){j = y.length;}
+			    bellCanvas4.animate();
+			    break;
+			
+			case 5://try{Thread.sleep(400);}catch(Exception e){j = y.length;}
+			    bellCanvas5.animate();
+			    break;
+			
+			case 6://try{Thread.sleep(400);}catch(Exception e){j = y.length;}
+			    bellCanvas6.animate();
+			    break;
+			
+			case 7://try{Thread.sleep(400);}catch(Exception e){j = y.length;}
+			    bellCanvas7.animate();
+			    break;
+			
+			case 8://try{Thread.sleep(400);}catch(Exception e){j = y.length;}
+			    bellCanvas8.animate();
+			    break;			
+			}//211
+		    }//216
+// 		    setFocusable(false);
+		    try{Thread.sleep(pause[j]);}catch(Exception e){}
+		}//212
+	    }//210
+	}//218
+	
+	if(event.getSource() == clearButton){
+	    int[] delete;
+	    delete = new int [0];
+	    recCanvas.delArray();
+	    recArrayField.setText("");
+	    transArray = delete;
+	    recArrayDisplay.setText("");
+	}
+
+	if(event.getSource() == stopButton){//204
+	 
+	    String text = recArrayDisplay.getText();
+	    int num = 0;
+       	    int [] recArray = new int[text.length()/2];	       
+	    int x = 0;
+
+	    setRecording(false);
+
+	    for(int s = 0 ; s < text.length()  ; s+=2){//102
+		    	   	    
+		String st = new String();
+		st = text.substring(s,(s+2));
+		Integer stringint = new Integer(0);
+		num = stringint.parseInt(st);
+		System.out.println("st : "+ st +"\n");		       
+		recArray[x] = num;	      
+		System.out.println("Notes : " + recArray[x] + "\n");
+		x++;
+
+	    }//102
+
+	    System.out.println("Array.length = "+ recArray.length);
+	    StringBuffer sb = new StringBuffer();
+	    System.out.println(printArray(recArray));
+	    recButton.setBackground(UIManager.getColor("Button.background"));
+	    getGaps();
+	    System.out.println(printGapsReturns(timer));
+	}//204
+
+	if(event.getSource() == recButton){//202
+	    setRecording(true);
+	    recButton.setBackground(Color.red);
+	}//202
+
+ 	if(event.getSource() == playButton){//170
+	    int [] x = recCanvas.getNoteArray();
+	    Thread rest;
+	    playButton.updateUI();
+	    rest = null;
+
+	    for ( int j = 0 ; j <= x.length ; j++ ) {//180
+
+		switch(x[j]){//181
+		case 0:try{Thread.sleep(700);}catch(Exception e){j = x.length;}
+		    break;
+
+		case 1:try{Thread.sleep(400);}catch(Exception e){j = x.length;}
+		    bellCanvas1.animate();
+		    break;
+
+		case 2:try{Thread.sleep(400);}catch(Exception e){j = x.length;}
+		    bellCanvas2.animate();
+		    break;
+
+		case 3:try{Thread.sleep(400);}catch(Exception e){j = x.length;}
+		    bellCanvas3.animate();
+		    break;
+
+		case 4:try{Thread.sleep(400);}catch(Exception e){j = x.length;}
+		    bellCanvas4.animate();
+		    break;
+
+		case 5:try{Thread.sleep(400);}catch(Exception e){j = x.length;}
+		    bellCanvas5.animate();
+		    break;
+
+		case 6:try{Thread.sleep(400);}catch(Exception e){j = x.length;}
+		    bellCanvas6.animate();
+		    break;
+
+		case 7:try{Thread.sleep(400);}catch(Exception e){j = x.length;}
+		    bellCanvas7.animate();
+		    break;
+
+		case 8:try{Thread.sleep(400);}catch(Exception e){j = x.length;}
+		    bellCanvas8.animate();
+		    break;
+
+		case 9:try{Thread.sleep(700);}catch(Exception e){j = x.length;}
+		    bellCanvas1.animate();
+		    break;
+
+		case 10:try{Thread.sleep(700);}catch(Exception e){j = x.length;}
+		    bellCanvas2.animate();
+		    break;
+
+		case 11:try{Thread.sleep(700);}catch(Exception e){j = x.length;}
+		    bellCanvas3.animate();
+		    break;
+
+		case 12:try{Thread.sleep(700);}catch(Exception e){j = x.length;}
+		    bellCanvas4.animate();
+		    break;
+
+		case 13:try{Thread.sleep(700);}catch(Exception e){j = x.length;}
+		    bellCanvas5.animate();
+		    break;
+
+		case 14:try{Thread.sleep(700);}catch(Exception e){j = x.length;}
+		    bellCanvas6.animate();
+		    break;
+
+		case 15:try{Thread.sleep(700);}catch(Exception e){j = x.length;}
+		    bellCanvas7.animate();
+		    break;
+
+		case 16:try{Thread.sleep(700);}catch(Exception e){j = x.length;}
+		    bellCanvas8.animate();
+		    break;
+
+		case 17:try{Thread.sleep(400);}catch(Exception e){j = x.length;}
+		    bellCanvas1.animate();
+		    bellCanvas2.animate();
+		    break;
+
+		case 18:try{Thread.sleep(400);}catch(Exception e){j = x.length;}
+		    bellCanvas2.animate();
+		    bellCanvas3.animate();
+		    break;
+
+		case 19:try{Thread.sleep(400);}catch(Exception e){j = x.length;}
+		    bellCanvas3.animate();
+		    bellCanvas4.animate();
+		    break;
+
+		case 20:try{Thread.sleep(400);}catch(Exception e){j = x.length;}
+		    bellCanvas4.animate();
+		    bellCanvas5.animate();
+		    break;
+
+		case 21:try{Thread.sleep(400);}catch(Exception e){j = x.length;}
+		    bellCanvas5.animate();
+		    bellCanvas6.animate();
+		    break;
+
+		case 22:try{Thread.sleep(400);}catch(Exception e){j = x.length;}
+		    bellCanvas6.animate();
+		    bellCanvas7.animate();
+		    break;
+
+		case 23:try{Thread.sleep(400);}catch(Exception e){j = x.length;}
+		    bellCanvas7.animate();
+		    bellCanvas8.animate();
+		    break;
+
+		case 24:try{Thread.sleep(400);}catch(Exception e){j = x.length;}
+		    bellCanvas8.animate();
+		    break;
+
+		case 25:try{Thread.sleep(700);}catch(Exception e){j = x.length;}
+		    bellCanvas1.animate();
+		    bellCanvas2.animate();
+		    break;
+
+		case 26:try{Thread.sleep(700);}catch(Exception e){j = x.length;}
+		    bellCanvas2.animate();
+		    bellCanvas3.animate();
+		    break;
+
+		case 27:try{Thread.sleep(700);}catch(Exception e){j = x.length;}
+		    bellCanvas3.animate();
+		    bellCanvas4.animate();
+		    break;
+
+		case 28:try{Thread.sleep(700);}catch(Exception e){j = x.length;}
+		    bellCanvas4.animate();
+		    bellCanvas5.animate();
+		    break;
+
+		case 29:try{Thread.sleep(700);}catch(Exception e){j = x.length;}
+		    bellCanvas5.animate();
+		    bellCanvas6.animate();
+		    break;
+
+		case 30:try{Thread.sleep(700);}catch(Exception e){j = x.length;}
+		    bellCanvas6.animate();
+		    bellCanvas7.animate();
+		    break;
+
+		case 31:try{Thread.sleep(700);}catch(Exception e){j = x.length;}
+		    bellCanvas7.animate();
+		    bellCanvas8.animate();
+		    break;
+
+		case 32:try{Thread.sleep(700);}catch(Exception e){j = x.length;}
+		    bellCanvas8.animate();
+		    break;
+
+		}//181
+	    }//180
+	}//170
+
+    }//169
+    
+}//animator class
+
